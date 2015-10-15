@@ -1,14 +1,26 @@
-# bugsnag-tools
+# Bugsnag Tools
 
-A Clojure library designed to ... well, that part is up to you.
+Tools for querying the Bugsnag API.
 
 ## Usage
 
-FIXME
+First, grab your account's auth token from bugsnag: https://bugsnag.com/accounts/farmlogs/edit
 
-## License
+Since this only lists error events at the moment, you'll also need to grab your
+error id from its URL in bugsnag.
 
-Copyright © 2015 FIXME
+    => (events auth-token error-id)
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Since you might have many events for a given error, events will yield a lazy
+sequence.  It's recommended take a small samples instead of using the entire
+list.
+
+    => (take 100 (events auth-token error-id))
+
+For ease of use, chain your operations together with `->>` - this is a Lisp, use
+it for what it's best at!
+
+    => (->> (events auth-token error-id)
+            (take 100)
+            (map #(get-in % [:meta_data :request]))
+            (group-by :uri))
