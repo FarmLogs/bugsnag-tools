@@ -1,4 +1,4 @@
-(defproject bugsnag-tools "0.1.0"
+(defproject bugsnag-tools "0.2.0"
   :description "Tools for querying the Bugsnag API."
   :url "https://github.com/FarmLogs/bugsnag-tools"
   :dependencies [[org.clojure/clojure "1.6.0"]
