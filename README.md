@@ -2,6 +2,9 @@
 
 Tools for querying the Bugsnag API.
 
+These are still in active development, API changes should be expected across
+major versions.
+
 ## Usage
 
 First, grab your account's auth token from bugsnag: https://bugsnag.com/accounts/farmlogs/edit
@@ -17,8 +20,7 @@ list.
 
     => (take 100 (events auth-token error-id))
 
-For ease of use, chain your operations together with `->>` - this is a Lisp, use
-it for what it's best at!
+For ease of use, chain your operations together with `->>`:
 
     => (->> (events auth-token error-id)
             (take 100)
