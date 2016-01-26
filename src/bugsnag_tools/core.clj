@@ -17,11 +17,17 @@
 
 (defn- fetch
   "Makes an authenticated get request against the bugsnag api."
-  [auth-token next-page]
-  (when next-page
-    (let [response (http/get (hostify next-page) {:query-params {"auth_token" auth-token "per_page" 100}})]
-      (lazy-cat (json/decode (:body response) true)
-                (fetch auth-token (get-in response [:links :next :href]))))))
+  ([auth-token next-page] (fetch auth-token next-page {}))
+  ([auth-token next-page options]
+   (when next-page
+     (let [params (merge {"auth_token" auth-token "per_page" 100} options)
+           response (http/get (hostify next-page)
+                              {:query-params params})]
+       (lazy-cat (json/decode (:body response) true)
+                 (fetch auth-token
+                        (get-in response [:links :next :href])
+                        ; Params already appended to next, don't preserve them
+                        {}))))))
 
 (defn accounts
   "Lists the accounts to which the auth-token has access.
@@ -56,8 +62,16 @@
    Usage:
    => (errors auth-token project-id)
    => (->> (errors auth-token project-id) (take 10))"
-  [auth-token project-id]
-  (fetch auth-token (format "/projects/%s/errors" project-id)))
+  [auth-token project-id & {:keys [release_stages
+                                   app_versions
+                                   severity
+                                   status
+                                   sort
+                                   direction
+                                   per_page
+                                   most_recent_event]
+                            :as options}]
+  (fetch auth-token (format "/projects/%s/errors" project-id) options))
 
 (defn events
   "Returns a lazy sequence of all events for the given error.
@@ -70,6 +84,7 @@
 
    Usage:
    => (events auth-token error-id)
-   => (->> (events auth-token error-id) (take 100))"
-  [auth-token error-id]
-  (fetch auth-token (format "/errors/%s/events" error-id)))
+   => (->> (events auth-token error-id) (take 100))->>"
+  [auth-token error-id & {:keys [sort direction per_page start_time end_time]
+                          :as options}]
+  (fetch auth-token (format "/errors/%s/events" error-id) options))
