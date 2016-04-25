@@ -43,8 +43,10 @@
   ([auth-token next-page options]
    (when next-page
      (let [params (merge {"auth_token" auth-token "per_page" 100} options)
-           response (http/get (hostify next-page)
-                              {:query-params params})]
+           response (http/with-middleware (into http/*current-middleware*
+                                                [rate-limit-middleware])
+                      (http/get (hostify next-page)
+                                {:query-params params}))]
        (lazy-cat (json/decode (:body response) true)
                  (fetch auth-token
                         (get-in response [:links :next :href])
