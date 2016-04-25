@@ -15,6 +15,28 @@
     path
     (str host path)))
 
+(defn retry
+  "Given a function, f, run it after delay-ms milliseconds have
+  passed."
+  [f delay-ms]
+  (Thread/sleep delay-ms)
+  (f))
+
+(defn rate-limit-middleware
+  [client]
+  (fn [req]
+    (try
+      (client req)
+      (catch clojure.lang.ExceptionInfo e
+        (let [data (ex-data e)]
+          (if (= (:status data) 429)
+            (do
+              (println "limiting...")
+              (retry #(client req)
+                    (-> (get-in data [:headers "Retry-After"] "10")
+                        (Integer/parseInt)
+                        (* 1000))))
+            (throw e)))))))
 (defn- fetch
   "Makes an authenticated get request against the bugsnag api."
   ([auth-token next-page] (fetch auth-token next-page {}))
