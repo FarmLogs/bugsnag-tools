@@ -23,6 +23,13 @@
   (f))
 
 (defn rate-limit-middleware
+  "Respect rate-limit requirements sent by the server.
+
+   When an HTTP 429 status code is received, sleep for the prescribed
+   amount of time. The amount of time may be communicated in the
+   \"Retry-After\" header.
+
+   Note: https://httpstatuses.com/429"
   [client]
   (fn [req]
     (try
@@ -31,11 +38,10 @@
         (let [data (ex-data e)]
           (if (= (:status data) 429)
             (do
-              (println "limiting...")
               (retry #(client req)
-                    (-> (get-in data [:headers "Retry-After"] "10")
-                        (Integer/parseInt)
-                        (* 1000))))
+                     (-> (get-in data [:headers "Retry-After"] "10")
+                         (Integer/parseInt)
+                         (* 1000))))
             (throw e)))))))
 (defn- fetch
   "Makes an authenticated get request against the bugsnag api."
