@@ -39,7 +39,7 @@
           (if (= (:status data) 429)
             (do
               (retry #(client req)
-                     (-> (get-in data [:headers "Retry-After"] "10")
+                     (-> (get-in data [:headers "Retry-After"] "1")
                          (Integer/parseInt)
                          (* 1000))))
             (throw e)))))))
