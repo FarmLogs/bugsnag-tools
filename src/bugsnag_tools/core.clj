@@ -37,12 +37,12 @@
       (catch clojure.lang.ExceptionInfo e
         (let [data (ex-data e)]
           (if (= (:status data) 429)
-            (do
-              (retry #(client req)
-                     (-> (get-in data [:headers "Retry-After"] "1")
-                         (Integer/parseInt)
-                         (* 1000))))
+            (retry #(client req)
+                   (-> (get-in data [:headers "Retry-After"] "1")
+                       (Integer/parseInt)
+                       (* 1000)))
             (throw e)))))))
+
 (defn- fetch
   "Makes an authenticated get request against the bugsnag api."
   ([auth-token next-page] (fetch auth-token next-page {}))
