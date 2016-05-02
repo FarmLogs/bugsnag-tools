@@ -15,14 +15,44 @@
     path
     (str host path)))
 
+(defn retry
+  "Given a function, f, run it after delay-ms milliseconds have
+  passed."
+  [f delay-ms]
+  (Thread/sleep delay-ms)
+  (f))
+
+(defn rate-limit-middleware
+  "Respect rate-limit requirements sent by the server.
+
+   When an HTTP 429 status code is received, sleep for the prescribed
+   amount of time. The amount of time may be communicated in the
+   \"Retry-After\" header.
+
+   Note: https://httpstatuses.com/429"
+  [client]
+  (fn [req]
+    (try
+      (client req)
+      (catch clojure.lang.ExceptionInfo e
+        (let [data (ex-data e)]
+          (if (= (:status data) 429)
+            (retry #(client req)
+                   (-> (get-in data [:headers "Retry-After"] "1")
+                       (Integer/parseInt)
+                       (* 1000)))
+            (throw e)))))))
+
 (defn- fetch
   "Makes an authenticated get request against the bugsnag api."
   ([auth-token next-page] (fetch auth-token next-page {}))
   ([auth-token next-page options]
    (when next-page
      (let [params (merge {"auth_token" auth-token "per_page" 100} options)
-           response (http/get (hostify next-page)
-                              {:query-params params})]
+           response (http/with-middleware (into http/*current-middleware*
+                                                [rate-limit-middleware])
+                      (http/get (hostify next-page)
+                                {:query-params params}))]
        (lazy-cat (json/decode (:body response) true)
                  (fetch auth-token
                         (get-in response [:links :next :href])
